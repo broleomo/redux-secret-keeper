@@ -1,29 +1,10 @@
-import {SET_TOKEN, SET_ERROR} from './actions';
-
-import update from 'immutability-helper';
-
-const initialState = {
-  token:null,
-  error:null
-}
-
-const reducer = (state = initialState, action) => {
+export const reducer = (state={}, action) => {
   switch(action.type) {
-    case SET_ERROR:
-      return update(state, {
-        error: {
-          $set:action.payload
-        }
-    })
-    case SET_TOKEN:
-      return update(state, {
-        token: {
-          $set: action.payload
-        }
-      });
+    case 'AUTH_TOKEN':
+      return {...state, token: action.token};
+      case 'DASHBOARD':
+        return{...state, full_name: action.full_name, email: action.email, message: action.message}
       default:
-      return state;
+        return state;
   }
 }
-
-export default reducer;

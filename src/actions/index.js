@@ -1,49 +1,44 @@
-import request from 'superagent';
-import Cookies from 'js-cookie';
+const authToken = (token) => ({
+  type: 'AUTH_TOKEN',
+  token
+});
 
-export const SET_TOKEN = 'SET_TOKEN';
-export const SET_ERROR = 'SET_ERROR';
+const dashboard = (full_name, email, password, message) => ({
+  type: 'DASHBOARD',
+  full_name,
+  email,
+  message
+})
 
-const makeActionCreator = function(actionType) {
-  return function(payload) {
-    return{type: actionType, payload:payload}
-  }
+const options = {
+  method: 'POST',
+  mode: 'cors',
+  headers: new Headers({'Content-Type':'application/json'})
 }
 
-const setToken = makeActionCreator(SET_TOKEN);
-const setError = makeActionCreator(SET_ERROR);
+export const fetchRegister = (full_name, name, email, password, message) => (
+  (dispatch, getState) => (
+    fetch('https://user-auth-test.herokuapp.com/register', {...options, body: JSON.stringify({full_name, name, email, password, message})})
+    .then(response => response.json())
+      .then( () => console.log('registered'))
+  )
+)
 
-const baseURL = 'https://user-auth-test.herokuapp.com';
-const api = (path) => baseURL + path;
-
-export const login = (name,email,password) => {
-  return (dispatch) => {
-    request
-    .post(api("/login"))
-    .send({name:name,email:email,password:password})
-    .end((err,res) => {
-      if(err) {
-        return dispatch(setError(res.body.errors))
-      } else {
-        dispatch(setError(null));
-      }
-      dispatch(setToken(res.body['auth_token']));
-      dispatch(getDashboard());
-      Cookies.set('token',res.body['auth_token'], {expires:7})
-    })
+export const fetchLogin = (email,password) => (
+  (dispatch, getState) => (
+    fetch('https://user-auth-test.herokuapp.com/login', {...options, body:JSON.stringify({email, password})})
+    .then(response => response.json())
+    .then(payload => payload.success && dispatch(authToken(payload.auth_token)))
+  )
+)
+//
+export const fetchDashboard = () => (
+  (dispatch, getState) => {
+    const {token} = getState();
+    fetch('https://user-auth-test.herokuapp.com/dashboard', {headers: new Headers({'X-AUTH-TOKEN': token})})
+    .then(response => response.json())
+    .then(({full_name, email, message, success}) =>(
+      dispatch(dashboard(full_name, email, message, success))
+    ))
   }
-}
-
-const getDashboard = (token) => {
-  return (dispatch, getState) => {
-    request
-    .get(api("/dashboard"))
-    .set('X-AUTH-TOKEN', getState()['token'])
-    .end((err,res)=> {
-      if(err) {
-        return dispatch(setError(res.body.errors));
-      }
-      dispatch(setUser({email: res.body.email, 'full_name': res.body.full_name, res.body.full_name, message: res.body.message}))
-    })
-  }
-}
+)
